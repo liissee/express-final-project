@@ -45,9 +45,56 @@ const app = express()
 app.use(cors())
 app.use(bodyParser.json())
 
+const authenticateUser = async (req, res, next) => {
+  const user = await User.findOne({ accessToken: req.header('Authorization') })
+  if (user) {
+    req.user = user //what does this mean? 
+    next() //when to use next? (calling the next() function which allows the proteced endpoint to continue execution)
+  } else {
+    res.status(403).json({ message: "You need to login to access this page" })
+  }
+}
 // Start defining your routes here
 app.get('/', (req, res) => {
   res.send('Hello backend for movie project')
+})
+
+// Create user
+app.post('/users', async (req, res) => {
+  try {
+    const { name, email, password } = req.body
+    const user = new User({ name, email, password: bcrypt.hashSync(password) })
+    const saved = await user.save()
+    res.status(201).json(saved)
+  } catch (err) {
+    res.status(400).json({ message: 'Could not create user', errors: err.errors })
+  }
+})
+//LOGIN SESSION
+app.post('/sessions', async (req, res) => {
+  const user = await User.findOne({ email: req.body.email })
+  if (user && bcrypt.compareSync(req.body.password, user.password)) {
+    res.json({ userId: user._id, accessToken: user.accessToken })
+  } else {
+    //Failure because user doesn't exist or encrypted password doesn't match
+    res.status(400).json({ notFound: true })
+  }
+})
+
+// app.get('/profiles', authenticateUser)
+// //This will only be shown if the next()-function is called from the middleware
+// app.get('/profiles', (req, res) => {
+//   res.json({ message: 'Successfully signed in!})
+// })
+
+// Secure endpoint, user needs to be logged in to access this.
+app.get('/users/:id', authenticateUser)
+app.get('/users/:id', (req, res) => {
+  try {
+    res.status(201).json(req.user)
+  } catch (err) {
+    res.status(400).json({ message: 'could not save user', errors: err.errors })
+  }
 })
 
 // Start the server
