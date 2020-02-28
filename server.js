@@ -31,8 +31,22 @@ const User = mongoose.model('User', {
   accessToken: {
     type: String,
     default: () => crypto.randomBytes(128).toString('hex')
+  },
+  moviesWatched: {
+    type: String,
+    default: ""
   }
 })
+// moviesWatched - should it be an array with objects or should we split it up more?
+// For example, something like:
+// moviesWatched = [
+//   title: String,
+//   watched: Boolean,
+//   rating: Number,
+// 
+// ]
+
+
 
 // Defines the port the app will run on. Defaults to 8080, but can be 
 // overridden when starting the server. For example:
