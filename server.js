@@ -81,13 +81,16 @@ const User = mongoose.model('User', {
 
 // moviesWatched - should it be an array with objects or should we split it up more?
 // For example, something like:
-//   moviesWatched = [
+//   moviesList = [{
 //   id: String,
 //   title: String,
 //   watched: Boolean,
+//   rewatch: Boolean,
+//   noRewatch: Boolean,
+//   noWatch: Boolean,
 //   rating: Number,
-// 
-// ]
+//    
+// }]
 
 
 
@@ -151,6 +154,14 @@ app.get('/secrets', (req, res) => {
 })
 
 // Secure endpoint, user needs to be logged in to access this.
+// app.put('/users/:id', authenticateUser)
+// app.put('/users/:id', (req, res) => {
+//   try {
+//     res.status(201).json(req.user)
+//   } catch (err) {
+//     res.status(400).json({ message: 'could not save user', errors: err.errors })
+//   }
+// })
 app.get('/users/:id', authenticateUser)
 app.get('/users/:id', (req, res) => {
   try {
