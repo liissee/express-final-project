@@ -32,14 +32,57 @@ const User = mongoose.model('User', {
     type: String,
     default: () => crypto.randomBytes(128).toString('hex')
   },
-  moviesWatched: {
-    type: String,
-    default: ""
+  personalMovieLists: {
+    type: Array,
+    default: []
   }
+  // personalLists: {
+  //   type: Array,
+  //   default: [
+  //     watched: [Object],
+  //     willWatch: [Object],
+  //     rewatch: [Object],
+  //     noRewatch: [Object],
+  //     willNotWatch: [Object]
+  //   ]
+  // }
+  // personalList: {
+  //   type: Array,
+  //   default: [[watched]]
+  // },
+  // watched: {
+  //   type: Array,
+  //   default: []
+  // }
 })
+// const Lists = mongoose.model('Lists', {
+//   watched: {
+//     type: Array,
+//     default: []
+//   },
+//   willWatch: {
+//     type: Array,
+//     default: []
+//   },
+//   rewatch: {
+//     type: Array,
+//     default: []
+//   },
+//   noRewatch: {
+//     type: Array,
+//     default: []
+//   },
+//   willNotWatch: {
+//     type: Array,
+//     default: []
+//   }
+// }
+// }
+
 // moviesWatched - should it be an array with objects or should we split it up more?
 // For example, something like:
-// moviesWatched = [
+//   moviesWatched = [
+//   id: String,
 //   title: String,
 //   watched: Boolean,
 //   rating: Number,
@@ -100,6 +143,12 @@ app.post('/sessions', async (req, res) => {
 // app.get('/profiles', (req, res) => {
 //   res.json({ message: 'Successfully signed in!})
 // })
+
+app.get('/secrets', authenticateUser)
+//This will only be shown if the next()-function is called from the middleware
+app.get('/secrets', (req, res) => {
+  res.json({ secret: 'This is a super secret message' }) //what is the difference: res.json and res.send? 
+})
 
 // Secure endpoint, user needs to be logged in to access this.
 app.get('/users/:id', authenticateUser)
