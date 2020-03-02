@@ -32,10 +32,21 @@ const User = mongoose.model('User', {
     type: String,
     default: () => crypto.randomBytes(128).toString('hex')
   },
-  personalMovieLists: {
-    type: Array,
-    default: []
-  }
+  moviesList: [{
+    movieId: String,
+    movieTitle: String,
+    score: Number,
+    watched: String,
+    rewatch: String,
+    noRewatch: String,
+    noWatch: String
+}]
+})
+
+  // personalMovieLists: {
+  //   type: Array,
+  //   default: []
+  // }
   // personalLists: {
   //   type: Array,
   //   default: [
@@ -54,7 +65,7 @@ const User = mongoose.model('User', {
   //   type: Array,
   //   default: []
   // }
-})
+
 // const Lists = mongoose.model('Lists', {
 //   watched: {
 //     type: Array,
@@ -79,18 +90,6 @@ const User = mongoose.model('User', {
 // }
 // }
 
-// moviesWatched - should it be an array with objects or should we split it up more?
-// For example, something like:
-//   moviesList = [{
-//   id: String,
-//   title: String,
-//   watched: Boolean,
-//   rewatch: Boolean,
-//   noRewatch: Boolean,
-//   noWatch: Boolean,
-//   rating: Number,
-//    
-// }]
 
 
 
@@ -122,8 +121,8 @@ app.get('/', (req, res) => {
 // Create user
 app.post('/users', async (req, res) => {
   try {
-    const { name, email, password } = req.body
-    const user = new User({ name, email, password: bcrypt.hashSync(password) })
+    const { name, email, password, moviesList } = req.body
+    const user = new User({ name, email, password: bcrypt.hashSync(password), moviesList })
     const saved = await user.save()
     res.status(201).json(saved)
   } catch (err) {
@@ -155,13 +154,16 @@ app.get('/secrets', (req, res) => {
 
 // Secure endpoint, user needs to be logged in to access this.
 // app.put('/users/:id', authenticateUser)
-// app.put('/users/:id', (req, res) => {
-//   try {
-//     res.status(201).json(req.user)
-//   } catch (err) {
-//     res.status(400).json({ message: 'could not save user', errors: err.errors })
-//   }
-// })
+app.put('/users/:id', async (req, res) => {
+  const { userId } = req.params
+  try {
+    await User.updateOne({'_id': userId}, req.body, {accessToken: req.header("Authorization") })
+    res.status(201).json()
+  } catch (err) {
+    res.status(400).json({ message: 'Could not save update', errors: err.errors })
+  }
+})
+
 app.get('/users/:id', authenticateUser)
 app.get('/users/:id', (req, res) => {
   try {
