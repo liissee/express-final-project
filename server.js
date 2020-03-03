@@ -36,10 +36,7 @@ const User = mongoose.model('User', {
     movieId: String,
     movieTitle: String,
     score: Number,
-    watched: String,
-    rewatch: String,
-    noRewatch: String,
-    noWatch: String
+    status: String
 }]
 })
 
