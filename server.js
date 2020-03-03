@@ -32,36 +32,43 @@ const User = mongoose.model('User', {
     type: String,
     default: () => crypto.randomBytes(128).toString('hex')
   },
-  moviesList: [{
-    movieId: String,
-    movieTitle: String,
-    score: Number,
-    status: String
-}]
+  lists: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "RatedMovie"
+  }
 })
 
-  // personalMovieLists: {
-  //   type: Array,
-  //   default: []
-  // }
-  // personalLists: {
-  //   type: Array,
-  //   default: [
-  //     watched: [Object],
-  //     willWatch: [Object],
-  //     rewatch: [Object],
-  //     noRewatch: [Object],
-  //     willNotWatch: [Object]
-  //   ]
-  // }
-  // personalList: {
-  //   type: Array,
-  //   default: [[watched]]
-  // },
-  // watched: {
-  //   type: Array,
-  //   default: []
-  // }
+const RatedMovie = mongoose.model("RatedMovie", {
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+  userId: {
+    type: String
+  },
+  movieId: {
+    type: Number
+  },
+  movieTitle: {
+    type: String
+  },
+  score: {
+    type: Number
+  },
+  status: {
+    type: String
+  }
+}
+)
+
+// personalMovieLists: {
+//   type: Array,
+//   default: []
+// }
+// personalLists: {
+//   type: Array,
+//   default: [
+
 
 // const Lists = mongoose.model('Lists', {
 //   watched: {
@@ -118,8 +125,8 @@ app.get('/', (req, res) => {
 // Create user
 app.post('/users', async (req, res) => {
   try {
-    const { name, email, password, moviesList } = req.body
-    const user = new User({ name, email, password: bcrypt.hashSync(password), moviesList })
+    const { name, email, password, lists } = req.body
+    const user = new User({ name, email, password: bcrypt.hashSync(password), lists })
     const saved = await user.save()
     res.status(201).json(saved)
   } catch (err) {
@@ -137,11 +144,6 @@ app.post('/sessions', async (req, res) => {
   }
 })
 
-// app.get('/profiles', authenticateUser)
-// //This will only be shown if the next()-function is called from the middleware
-// app.get('/profiles', (req, res) => {
-//   res.json({ message: 'Successfully signed in!})
-// })
 
 app.get('/secrets', authenticateUser)
 //This will only be shown if the next()-function is called from the middleware
@@ -151,24 +153,52 @@ app.get('/secrets', (req, res) => {
 
 // Secure endpoint, user needs to be logged in to access this.
 // app.put('/users/:id', authenticateUser)
-app.put('/users/:id', async (req, res) => {
-  const { userId } = req.params
-  try {
-    await User.updateOne({'_id': userId}, req.body, {accessToken: req.header("Authorization") })
-    res.status(201).json()
-  } catch (err) {
-    res.status(400).json({ message: 'Could not save update', errors: err.errors })
-  }
-})
 
-app.get('/users/:id', authenticateUser)
-app.get('/users/:id', (req, res) => {
+// Change rating?
+// app.put('/users/:userId', async (req, res) => {
+//   const { userId } = req.params
+//   const { userId, movieId, movieTitle, score } = req.body
+//   const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, score })
+//   const saved = await ratedMovie.save()
+//   try {
+//     await ratedMovie.updateOne({ '_id': userId }, req.body, { accessToken: req.header("Authorization") })
+//     res.status(201).json()
+//   } catch (err) {
+//     res.status(400).json({ message: 'Could not save update', errors: err.errors })
+//   }
+// })
+
+app.get('/users/:userId', authenticateUser)
+app.get('/users/:userId', (req, res) => {
   try {
     res.status(201).json(req.user)
   } catch (err) {
     res.status(400).json({ message: 'could not save user', errors: err.errors })
   }
 })
+
+//Test posting score to lists
+app.post('/users/:userId', async (req, res) => {
+  try {
+    const { userId, movieId, movieTitle, score } = req.body
+    const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, score })
+    const saved = await ratedMovie.save()
+    res.status(201).json(saved)
+  } catch (err) {
+    res.status(400).json({ message: 'Could not rate movie', errors: err.errors })
+  }
+})
+
+// app.get('/users/:userId', (req, res) => {
+//   try {
+//     const books = await Book.find().populate('author')
+//     res.json(books)
+//     res.status(201).json(req.user)
+//   } catch (err) {
+//     res.status(400).json({ message: 'could not save user', errors: err.errors })
+//   }
+// })
+
 
 // Start the server
 app.listen(port, () => {
