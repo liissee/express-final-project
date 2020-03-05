@@ -57,6 +57,10 @@ const RatedMovie = mongoose.model("RatedMovie", {
   },
   status: {
     type: String
+  },
+  date: {
+    type: Date,
+    dagault: Date.now
   }
 }
 )
@@ -186,6 +190,22 @@ app.post('/users/:userId', async (req, res) => {
     res.status(201).json(saved)
   } catch (err) {
     res.status(400).json({ message: 'Could not rate movie', errors: err.errors })
+  }
+})
+
+app.get('/users/:userId/movies', async (req, res) => {
+  const userId = req.params.userId
+  // const score = req.params.score
+  // const lists = []
+  // if (score) {
+  // lists = await RatedMovie.find({ "userId": userId, "score": score }).sort({ date: -1 })
+  // } else {
+  const lists = await RatedMovie.find({ "userId": userId }).sort({ date: -1 })
+  // }
+  if (lists.length > 0) {
+    res.json(lists)
+  } else {
+    res.status(404).json({ message: 'No movies rated yet' })
   }
 })
 
