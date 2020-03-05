@@ -52,10 +52,10 @@ const RatedMovie = mongoose.model("RatedMovie", {
   movieTitle: {
     type: String
   },
-  score: {
+  rating: {
     type: Number
   },
-  status: {
+  watchStatus: {
     type: String
   },
   date: {
@@ -181,11 +181,11 @@ app.get('/users/:userId', (req, res) => {
   }
 })
 
-//Test posting score to lists
+//Test posting rating to lists
 app.post('/users/:userId', async (req, res) => {
   try {
-    const { userId, movieId, movieTitle, score } = req.body
-    const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, score })
+    const { userId, movieId, movieTitle, rating, watchStatus } = req.body
+    const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, rating, watchStatus })
     const saved = await ratedMovie.save()
     res.status(201).json(saved)
   } catch (err) {
@@ -196,21 +196,21 @@ app.post('/users/:userId', async (req, res) => {
 //Get user-specific lists
 app.get('/users/:userId/movies', async (req, res) => {
   const userId = req.params.userId
-  const { score, status } = req.query
+  const { rating, watchStatus } = req.query
 
-  //Puts score-query and status-query into an object
-  const buildScoreStatusQuery = (score, status) => {
-    let findScoreStatus = {}
-    if (score) {
-      findScoreStatus.score = score
+  //Puts rating-query and status-query into an object
+  const buildRatingStatusQuery = (rating, watchStatus) => {
+    let findRatingStatus = {}
+    if (rating) {
+      findRatingStatus.rating = rating
     }
-    if (status) {
-      findScoreStatus.status = status
+    if (watchStatus) {
+      findRatingStatus.watchStatus = watchStatus
     }
-    return findScoreStatus
+    return findRatingStatus
   }
 
-  const lists = await RatedMovie.find({ "userId": userId }).find(buildScoreStatusQuery(score, status)).sort({ date: -1 })
+  const lists = await RatedMovie.find({ "userId": userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
   if (lists.length > 0) {
     res.json(lists)
   } else {
