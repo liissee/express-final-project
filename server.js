@@ -43,9 +43,6 @@ const RatedMovie = mongoose.model("RatedMovie", {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
   },
-  userId: {
-    type: String
-  },
   movieId: {
     type: Number
   },
@@ -60,7 +57,7 @@ const RatedMovie = mongoose.model("RatedMovie", {
   },
   date: {
     type: Date,
-    dagault: Date.now
+    default: Date.now
   }
 }
 )
@@ -182,11 +179,28 @@ app.get('/users/:userId', (req, res) => {
 })
 
 //Test posting rating to lists
-app.post('/users/:userId', async (req, res) => {
+app.put('/users/:userId', async (req, res) => {
+  const userId = req.params.userId
   try {
-    const { userId, movieId, movieTitle, rating, watchStatus } = req.body
-    const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, rating, watchStatus })
-    const saved = await ratedMovie.save()
+    // const movieId = req.body.movieId
+    // const movieTitle = req.body.movieTitle
+    // const rating = req.body.rating
+    // const watchStatus = req.body.watchStatus
+
+    // const { movieId, movieTitle, rating, watchStatus } = req.body
+    const user = await User.findOne({ _id: userId })
+    const savedMovie = await RatedMovie.findOne({ movieId: req.body.movieId })
+    //Does it really find the right one in the DB with the help of above??
+    let saved = []
+    if (savedMovie) {
+      saved = await RatedMovie.updateOne({ user: user, movieId: savedMovie.movieId, movieTitle: savedMovie.movieTitle, rating: req.body.rating || savedMovie.rating, watchStatus: req.body.watchStatus || savedMovie.watchStatus })
+      // saved.push(updated)
+      // userId: user._id
+    } else {
+      const ratedMovie = new RatedMovie({ user, movieId, movieTitle, rating, watchStatus })
+      saved = await ratedMovie.save()
+    }
+
     res.status(201).json(saved)
   } catch (err) {
     res.status(400).json({ message: 'Could not rate movie', errors: err.errors })
@@ -210,7 +224,7 @@ app.get('/users/:userId/movies', async (req, res) => {
     return findRatingStatus
   }
 
-  const lists = await RatedMovie.find({ "userId": userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
+  const lists = await RatedMovie.find({ user: userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
   if (lists.length > 0) {
     res.json(lists)
   } else {
