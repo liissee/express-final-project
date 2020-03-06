@@ -4,6 +4,7 @@ import cors from 'cors'
 import mongoose from 'mongoose'
 import crypto from "crypto"
 import bcrypt from 'bcrypt-nodejs'
+import { runInNewContext } from 'vm'
 
 //Setting up mongoDB database
 const mongoUrl = process.env.MONGO_URL || "mongodb://localhost/authMovie"
@@ -32,17 +33,17 @@ const User = mongoose.model('User', {
     type: String,
     default: () => crypto.randomBytes(128).toString('hex')
   },
-  lists: {
+  movies: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "RatedMovie"
-  }
+  }]
 })
 
 const RatedMovie = mongoose.model("RatedMovie", {
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  },
+  // user: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   ref: "User"
+  // },
   movieId: {
     type: Number
   },
@@ -182,26 +183,28 @@ app.get('/users/:userId', (req, res) => {
 app.put('/users/:userId', async (req, res) => {
   const userId = req.params.userId
   try {
-    // const movieId = req.body.movieId
-    // const movieTitle = req.body.movieTitle
-    // const rating = req.body.rating
-    // const watchStatus = req.body.watchStatus
+    const { movieId, movieTitle, rating, watchStatus } = req.body
+    // const user = await User.findOne({ _id: userId })
 
-    // const { movieId, movieTitle, rating, watchStatus } = req.body
-    const user = await User.findOne({ _id: userId })
     const savedMovie = await RatedMovie.findOne({ movieId: req.body.movieId })
-    //Does it really find the right one in the DB with the help of above??
-    let saved = []
+    //How to make it find something? If i write something weird here, it should go to "else"
+    // let saved = []
     if (savedMovie) {
-      saved = await RatedMovie.updateOne({ user: user, movieId: savedMovie.movieId, movieTitle: savedMovie.movieTitle, rating: req.body.rating || savedMovie.rating, watchStatus: req.body.watchStatus || savedMovie.watchStatus })
+      console.log(savedMovie)
+      const updated = await RatedMovie.findOneAndUpdate({ movieId: req.body.movieId }, req.body, { new: true })
+      res.status(201).json(updated)
       // saved.push(updated)
       // userId: user._id
     } else {
-      const ratedMovie = new RatedMovie({ user, movieId, movieTitle, rating, watchStatus })
-      saved = await ratedMovie.save()
+      const ratedMovie = new RatedMovie({ movieId, movieTitle, rating, watchStatus })
+      const saved = await ratedMovie.save()
+      await User.findOneAndUpdate(
+        { _id: userId },
+        { $push: { movies: saved } }
+      )
+      res.status(201).json(saved)
     }
 
-    res.status(201).json(saved)
   } catch (err) {
     res.status(400).json({ message: 'Could not rate movie', errors: err.errors })
   }
