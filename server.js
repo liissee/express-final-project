@@ -193,6 +193,10 @@ app.put('/users/:userId', async (req, res) => {
       console.log(savedMovie)
       const updated = await RatedMovie.findOneAndUpdate({ movieId: req.body.movieId }, req.body, { new: true })
       res.status(201).json(updated)
+      await User.findOneAndUpdate(
+        { _id: userId },
+        { $push: { movies: updated } }
+      )
       // saved.push(updated)
       // userId: user._id
     } else {
