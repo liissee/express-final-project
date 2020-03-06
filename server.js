@@ -59,6 +59,9 @@ const RatedMovie = mongoose.model("RatedMovie", {
   date: {
     type: Date,
     default: Date.now
+  },
+  userId: {
+    type: String
   }
 }
 )
@@ -181,26 +184,26 @@ app.get('/users/:userId', (req, res) => {
 
 //Test posting rating to lists
 app.put('/users/:userId', async (req, res) => {
-  const userId = req.params.userId
+  // const userId = req.params.userId
   try {
-    const { movieId, movieTitle, rating, watchStatus } = req.body
+    const { userId, movieId, movieTitle, rating, watchStatus } = req.body
     // const user = await User.findOne({ _id: userId })
 
-    const savedMovie = await RatedMovie.findOne({ movieId: req.body.movieId })
+    const savedMovie = await RatedMovie.findOne({ userId: req.body.userId, movieId: req.body.movieId })
     //How to make it find something? If i write something weird here, it should go to "else"
     // let saved = []
     if (savedMovie) {
       console.log(savedMovie)
-      const updated = await RatedMovie.findOneAndUpdate({ movieId: req.body.movieId }, req.body, { new: true })
+      const updated = await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId }, req.body, { new: true })
       res.status(201).json(updated)
-      await User.findOneAndUpdate(
-        { _id: userId },
-        { $push: { movies: updated } }
-      )
+      // await User.findOneAndUpdate(
+      //   { _id: userId },
+      //   { $push: { movies: updated } }
+      // )
       // saved.push(updated)
       // userId: user._id
     } else {
-      const ratedMovie = new RatedMovie({ movieId, movieTitle, rating, watchStatus })
+      const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, rating, watchStatus })
       const saved = await ratedMovie.save()
       await User.findOneAndUpdate(
         { _id: userId },
@@ -216,9 +219,13 @@ app.put('/users/:userId', async (req, res) => {
 
 //Get user-specific lists
 app.get('/users/:userId/movies', async (req, res) => {
-  let ratedmovies = await RatedMovie.find()
-  res.json(ratedmovies)
   // const userId = req.params.userId
+  // let ratedmovies = await User.findOne({ _id: userId })
+  // res.json(ratedmovies)
+  let ratedmovies = await RatedMovie.find({ userId: req.params.userId })
+  res.json(ratedmovies)
+
+
   // const { rating, watchStatus } = req.query
 
   // //Puts rating-query and status-query into an object
