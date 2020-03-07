@@ -217,6 +217,13 @@ app.put('/users/:userId', async (req, res) => {
   }
 })
 
+// Get a list of all the users
+app.get('/users/:userId/otherusers', async (req, res) => {
+  let otherusers = await User.find()
+  res.json(otherusers)
+})
+
+
 //Get user-specific lists
 app.get('/users/:userId/movies', async (req, res) => {
   // const userId = req.params.userId
