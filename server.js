@@ -4,7 +4,6 @@ import cors from 'cors'
 import mongoose from 'mongoose'
 import crypto from "crypto"
 import bcrypt from 'bcrypt-nodejs'
-import { runInNewContext } from 'vm'
 
 //Setting up mongoDB database
 const mongoUrl = process.env.MONGO_URL || "mongodb://localhost/authMovie"
@@ -40,10 +39,10 @@ const User = mongoose.model('User', {
 })
 
 const RatedMovie = mongoose.model("RatedMovie", {
-  // user: {
-  //   type: mongoose.Schema.Types.ObjectId,
-  //   ref: "User"
-  // },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
   movieId: {
     type: Number
   },
@@ -59,47 +58,9 @@ const RatedMovie = mongoose.model("RatedMovie", {
   date: {
     type: Date,
     default: Date.now
-  },
-  userId: {
-    type: String
   }
 }
 )
-
-// personalMovieLists: {
-//   type: Array,
-//   default: []
-// }
-// personalLists: {
-//   type: Array,
-//   default: [
-
-
-// const Lists = mongoose.model('Lists', {
-//   watched: {
-//     type: Array,
-//     default: []
-//   },
-//   willWatch: {
-//     type: Array,
-//     default: []
-//   },
-//   rewatch: {
-//     type: Array,
-//     default: []
-//   },
-//   noRewatch: {
-//     type: Array,
-//     default: []
-//   },
-//   willNotWatch: {
-//     type: Array,
-//     default: []
-//   }
-// }
-// }
-
-
 
 
 // Defines the port the app will run on. Defaults to 8080, but can be 
@@ -156,22 +117,6 @@ app.get('/secrets', (req, res) => {
   res.json({ secret: 'This is a super secret message' }) //what is the difference: res.json and res.send? 
 })
 
-// Secure endpoint, user needs to be logged in to access this.
-// app.put('/users/:id', authenticateUser)
-
-// Change rating?
-// app.put('/users/:userId', async (req, res) => {
-//   const { userId } = req.params
-//   const { userId, movieId, movieTitle, score } = req.body
-//   const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, score })
-//   const saved = await ratedMovie.save()
-//   try {
-//     await ratedMovie.updateOne({ '_id': userId }, req.body, { accessToken: req.header("Authorization") })
-//     res.status(201).json()
-//   } catch (err) {
-//     res.status(400).json({ message: 'Could not save update', errors: err.errors })
-//   }
-// })
 
 app.get('/users/:userId', authenticateUser)
 app.get('/users/:userId', (req, res) => {
@@ -196,12 +141,7 @@ app.put('/users/:userId', async (req, res) => {
       console.log(savedMovie)
       const updated = await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId }, req.body, { new: true })
       res.status(201).json(updated)
-      // await User.findOneAndUpdate(
-      //   { _id: userId },
-      //   { $push: { movies: updated } }
-      // )
-      // saved.push(updated)
-      // userId: user._id
+
     } else {
       const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, rating, watchStatus })
       const saved = await ratedMovie.save()
@@ -218,42 +158,49 @@ app.put('/users/:userId', async (req, res) => {
 })
 
 // Get a list of all the users
-app.get('/users/:userId/otherusers', async (req, res) => {
-  let otherusers = await User.find()
-  res.json(otherusers)
+app.get('/users/:userId/allUsers', async (req, res) => {
+  let otherUser = await User.find()
+  res.json(otherUser)
 })
+
+// Get a list of one user
+app.get('/users/:userId/otherUser', async (req, res) => {
+  try {
+    const name = await User.findOne({ _id: req.params.userId })
+    const otherUser = await RatedMovie.find({ userId: req.params.userId })
+    // .populate('userId')
+    res.status(201).json({ otherUser, name: name.name })
+  } catch (err) {
+    res.status(400).json({ message: 'error', errors: err.errors })
+  }
+})
+
 
 
 //Get user-specific lists
 app.get('/users/:userId/movies', async (req, res) => {
-  // const userId = req.params.userId
-  // let ratedmovies = await User.findOne({ _id: userId })
-  // res.json(ratedmovies)
-  let ratedmovies = await RatedMovie.find({ userId: req.params.userId })
-  res.json(ratedmovies)
+  const { rating, watchStatus } = req.query
 
+  //Puts rating-query and status-query into an object
+  const buildRatingStatusQuery = (rating, watchStatus) => {
+    let findRatingStatus = {}
+    if (rating) {
+      findRatingStatus.rating = rating
+    }
+    if (watchStatus) {
+      findRatingStatus.watchStatus = watchStatus
+    }
+    return findRatingStatus
+  }
 
-  // const { rating, watchStatus } = req.query
-
-  // //Puts rating-query and status-query into an object
-  // const buildRatingStatusQuery = (rating, watchStatus) => {
-  //   let findRatingStatus = {}
-  //   if (rating) {
-  //     findRatingStatus.rating = rating
-  //   }
-  //   if (watchStatus) {
-  //     findRatingStatus.watchStatus = watchStatus
-  //   }
-  //   return findRatingStatus
-  // }
-
-  // const lists = await RatedMovie.find({ user: userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
-  // if (lists.length > 0) {
-  //   res.json(lists)
-  // } else {
-  //   res.status(404).json({ message: 'No movies rated yet' })
-  // }
+  const lists = await RatedMovie.find({ userId: req.params.userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
+  if (lists.length > 0) {
+    res.json(lists)
+  } else {
+    res.status(404).json({ message: 'No movies rated yet' })
+  }
 })
+
 
 // app.get('/users/:userId/movies/:score', async (req, res) => {
 //   const userId = req.params.userId
@@ -266,15 +213,6 @@ app.get('/users/:userId/movies', async (req, res) => {
 //   }
 // })
 
-// app.get('/users/:userId', (req, res) => {
-//   try {
-//     const books = await Book.find().populate('author')
-//     res.json(books)
-//     res.status(201).json(req.user)
-//   } catch (err) {
-//     res.status(400).json({ message: 'could not save user', errors: err.errors })
-//   }
-// })
 
 
 // Start the server
