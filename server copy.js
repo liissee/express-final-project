@@ -10,6 +10,7 @@ const mongoUrl = process.env.MONGO_URL || "mongodb://localhost/authMovie"
 mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true })
 mongoose.Promise = Promise
 
+// models
 const User = mongoose.model('User', {
   name: {
     type: String,
@@ -31,36 +32,37 @@ const User = mongoose.model('User', {
   accessToken: {
     type: String,
     default: () => crypto.randomBytes(128).toString('hex')
-  },
-  movies: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "RatedMovie"
-  }]
+  }
 })
-
-const RatedMovie = mongoose.model("RatedMovie", {
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  },
+const RatedMovie = mongoose.model('RatedMovie', {
+  reviews: [
+    {
+      reviewer: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      rating: {
+        type: Number
+      },
+      watchStatus: {
+        type: String
+      }
+    }
+  ],
   movieId: {
     type: Number
   },
   movieTitle: {
     type: String
   },
-  rating: {
-    type: Number
-  },
-  watchStatus: {
-    type: String
-  },
   date: {
     type: Date,
     default: Date.now
   }
-}
-)
+})
+
+
+
 
 
 // Defines the port the app will run on. Defaults to 8080, but can be 
@@ -127,104 +129,124 @@ app.get('/users/:userId', (req, res) => {
   }
 })
 
-//Test posting rating to lists
+//Test posting rating to lists. JENNIES
 app.put('/users/:userId', async (req, res) => {
-  // const userId = req.params.userId
   try {
-    const { userId, movieId, movieTitle, rating, watchStatus } = req.body
-    // const user = await User.findOne({ _id: userId })
-
-    const savedMovie = await RatedMovie.findOne({ userId: req.body.userId, movieId: req.body.movieId })
-    //How to make it find something? If i write something weird here, it should go to "else"
-    // let saved = []
+    const userId = req.params.userId
+    const { movieId, movieTitle, rating, watchStatus } = req.body
+    const user = await User.findOne({ _id: userId }) // get the whole user from userId
+    const savedMovie = await RatedMovie.findOne({ movieId }) // check if movie exists already
     if (savedMovie) {
-      console.log(savedMovie)
-      const updated = await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId }, req.body, { new: true })
-      res.status(201).json(updated)
+      console.log('there is a saved movie!')
+      if (
+        savedMovie.reviews.find(
+          m => m.reviewer.toString() === req.params.userId.toString() // dont know whats going on with toString here...
+        )
+      ) {
+        // user has reviewed before and wants to update their review. 
+        //TODO: Refactor this into ternary operator!
+        if (rating) {
+          const updated = await RatedMovie.findOneAndUpdate(
+            {
+              movieId,
+              'reviews.reviewer': userId
+            }, // find the correct movie and review
+            {
+              $set: {
+                'reviews.$.rating': rating, // updating rating
+                // 'reviews.$.watchStatus': watchStatus //and watchStatus. Right now you need to pass both.
+              }
+            }
+          )
 
+        } else if (watchStatus) {
+          const updated = await RatedMovie.findOneAndUpdate(
+            {
+              movieId,
+              'reviews.reviewer': userId
+            }, // find the correct movie and review
+            {
+              $set: {
+                // 'reviews.$.rating': rating, // updating rating
+                'reviews.$.watchStatus': watchStatus //and watchStatus. Right now you need to pass both.
+              }
+            }
+          )
+        }
+        res.status(201).json(updated)
+      } else {
+        // user hasnt reviewd this movie, should be added to the reviews list
+        console.log('should add user to reviewers')
+        const updated = await RatedMovie.findOneAndUpdate(
+          { movieId },
+          {
+            $push: {
+              reviews: {
+                reviewer: user,
+                rating,
+                watchStatus
+              }
+            }
+          },
+          { new: true }
+        )
+        res.status(201).json(updated)
+      }
     } else {
-      const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, rating, watchStatus })
+      //movie isnt yet added by anyone
+      console.log('new movie coming!')
+      const ratedMovie = new RatedMovie({
+        movieId,
+        movieTitle,
+        reviews: [{ reviewer: user, rating, watchStatus }]
+      })
       const saved = await ratedMovie.save()
-      await User.findOneAndUpdate(
-        { _id: userId },
-        { $push: { movies: saved } }
-      )
       res.status(201).json(saved)
     }
-
   } catch (err) {
-    res.status(400).json({ message: 'Could not rate movie', errors: err.errors })
+    res
+      .status(400)
+      .json({ message: 'Could not rate movie', errors: err.errors })
   }
 })
 
 // Get a list of all the users
-app.get('/users/:userId/allUsers', async (req, res) => {
+app.get('/users/:userId/otherUser', async (req, res) => {
   let otherUser = await User.find()
   res.json(otherUser)
 })
 
-// Get a list of one user
-app.get('/users/:userId/otherUser', async (req, res) => {
-  try {
-    const name = await User.findOne({ _id: req.params.userId })
-    const otherUser = await RatedMovie.find({ userId: req.params.userId })
-    // .populate('userId')
-    res.status(201).json({ otherUser, name: name.name })
-  } catch (err) {
-    res.status(400).json({ message: 'error', errors: err.errors })
-  }
-})
-
-
 
 //Get user-specific lists
 app.get('/users/:userId/movies', async (req, res) => {
+  const userId = req.params.userId
+  // const ratedByUser = await RatedMovie.find({ 'reviews.reviewer': userId })
+  // find all movies reviewd by user
+  // res.json(ratedByUser)
+
   const { rating, watchStatus } = req.query
 
   //Puts rating-query and status-query into an object
-  const buildRatingStatusQuery = (rating, watchStatus) => {
-    let findRatingStatus = {}
-    if (rating) {
-      findRatingStatus.rating = rating
-    }
-    if (watchStatus) {
-      findRatingStatus.watchStatus = watchStatus
-    }
-    return findRatingStatus
-  }
+  // const buildRatingStatusQuery = (rating, watchStatus) => {
+  //   let findRatingStatus = {}
+  //   if (rating) {
+  //     findRatingStatus.rating = rating
+  //   }
+  //   if (watchStatus) {
+  //     findRatingStatus.watchStatus = watchStatus
+  //   }
+  //   return findRatingStatus
+  // }
 
-  const lists = await RatedMovie.find({ userId: req.params.userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
-  if (lists.length > 0) {
-    res.json(lists)
+  const ratedByUser = await RatedMovie.find({ 'reviews.reviewer': userId }).find({ 'reviews.rating': rating, 'reviews.watchStatus': watchStatus }).sort({ date: -1 })
+  // const lists = await RatedMovie.find({ user: userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
+  if (ratedByUser.length > 0) {
+    res.status(201).json(ratedByUser)
   } else {
     res.status(404).json({ message: 'No movies rated yet' })
   }
+
 })
-
-//GET MOVIES THAT MATCH. http://localhost:8080/movies/5e6651a2564d8b0290c09380?friend=5e6642c587fd9a762bed45d1
-app.get('/movies/:userId', async (req, res) => {
-  let myself = req.params.userId
-  let friend = req.query.friend
-
-  let myMovies = await RatedMovie.find({
-    watchStatus: "watch",
-    userId: myself
-  })
-  let friendsMovies = await RatedMovie.find({
-    watchStatus: "watch",
-    userId: friend
-  })
-  let matches = []
-  myMovies.map((my, index) => {
-    if (friendsMovies.filter(friend => friend.movieTitle === my.movieTitle).length > 0) {
-      matches.push(my)
-    } else {
-      return
-    }
-  })
-  res.status(201).json(matches)
-})
-
 
 // Start the server
 app.listen(port, () => {
