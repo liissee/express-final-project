@@ -106,7 +106,7 @@ app.post('/users', async (req, res) => {
 app.post('/sessions', async (req, res) => {
   const user = await User.findOne({ email: req.body.email })
   if (user && bcrypt.compareSync(req.body.password, user.password)) {
-    res.json({ userId: user._id, accessToken: user.accessToken })
+    res.json({ name: user.name, userId: user._id, accessToken: user.accessToken })
   } else {
     //Failure because user doesn't exist or encrypted password doesn't match
     res.status(400).json({ notFound: true })
