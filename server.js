@@ -49,6 +49,9 @@ const RatedMovie = mongoose.model("RatedMovie", {
   movieTitle: {
     type: String
   },
+  movieImage: {
+    type: String
+  },
   rating: {
     type: Number
   },
@@ -121,9 +124,9 @@ app.get('/secrets', (req, res) => {
 app.get('/users/:userId', authenticateUser)
 app.get('/users/:userId', (req, res) => {
   try {
-    res.status(201).json(req.user)
+    res.status(201).json(req.body.user)
   } catch (err) {
-    res.status(400).json({ message: 'could not save user', errors: err.errors })
+    res.status(400).json({ message: 'could not find user', errors: err.errors })
   }
 })
 
@@ -157,7 +160,7 @@ app.put('/users/:userId', async (req, res) => {
   }
 })
 
-// Get a list of all the users
+// Get a list of all the users. KOLLA SÅ ATT VI INTE FÅR MED PASSWORD OCH ACCESSTOKEN
 app.get('/users/:userId/allUsers', async (req, res) => {
   let otherUser = await User.find()
   res.json(otherUser)
@@ -177,7 +180,7 @@ app.get('/users/:userId/otherUser', async (req, res) => {
 
 
 
-//Get user-specific lists
+//Get user-specific lists with queries "watch" or "no", and "rating"
 app.get('/users/:userId/movies', async (req, res) => {
   const { rating, watchStatus } = req.query
 
