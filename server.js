@@ -46,12 +46,12 @@ const RatedMovie = mongoose.model("RatedMovie", {
   movieId: {
     type: Number
   },
-  movieTitle: {
-    type: String
-  },
-  movieImage: {
-    type: String
-  },
+  // movieTitle: {
+  //   type: String
+  // },
+  // movieImage: {
+  //   type: String
+  // },
   rating: {
     type: Number
   },
@@ -162,9 +162,43 @@ app.put('/users/:userId', async (req, res) => {
 
 // Get a list of all the users. KOLLA SÅ ATT VI INTE FÅR MED PASSWORD OCH ACCESSTOKEN
 app.get('/users/:userId/allUsers', async (req, res) => {
-  let otherUser = await User.find()
-  res.json(otherUser)
+  const { name } = req.query
+
+  //Regular expression to make it case insensitive
+  // const nameRegex = new RegExp(name, "i")
+  let otherUser
+  try {
+    if (name) {
+      otherUser = await User.findOne({ name: req.query.name })
+    } else {
+      otherUser = await User.find()
+    }
+    res.status(201).json(otherUser)
+  } catch (err) {
+    res.status(400).json({ message: 'error', errors: err.errors })
+  }
+
+
+  // if (name) {
+  //   const person = await User.find({ name: req.query.name })
+  //   if (person.length > 0) {
+  //     res.json(person)
+  //   }
+  // } else {
+  //   const otherUser = await User.find()
+  //   res.json(otherUser)
+  // }
+
+
 })
+
+
+//   const lists = await RatedMovie.find({ userId: req.params.userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
+//   if (lists.length > 0) {
+//     res.json(lists)
+//   } else {
+//     res.status(404).json({ message: 'No movies rated yet' })
+//   }
 
 // Get a list of one user
 app.get('/users/:userId/otherUser', async (req, res) => {
@@ -177,8 +211,6 @@ app.get('/users/:userId/otherUser', async (req, res) => {
     res.status(400).json({ message: 'error', errors: err.errors })
   }
 })
-
-
 
 //Get user-specific lists with queries "watch" or "no", and "rating"
 app.get('/users/:userId/movies', async (req, res) => {
