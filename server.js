@@ -46,12 +46,12 @@ const RatedMovie = mongoose.model("RatedMovie", {
   movieId: {
     type: Number
   },
-  // movieTitle: {
-  //   type: String
-  // },
-  // movieImage: {
-  //   type: String
-  // },
+  movieTitle: {
+    type: String
+  },
+  movieImage: {
+    type: String
+  },
   rating: {
     type: Number
   },
