@@ -165,11 +165,11 @@ app.get('/users/:userId/allUsers', async (req, res) => {
   const { name } = req.query
 
   //Regular expression to make it case insensitive
-  // const nameRegex = new RegExp(name, "i")
+  const nameRegex = new RegExp(name, "i")
   let otherUser
   try {
     if (name) {
-      otherUser = await User.findOne({ name: req.query.name })
+      otherUser = await User.find({ name: nameRegex })
     } else {
       otherUser = await User.find()
     }
