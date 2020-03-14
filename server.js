@@ -214,7 +214,7 @@ app.get('/users/:userId/otherUser', async (req, res) => {
 
 //Get user-specific lists with queries "watch" or "no", and "rating"
 app.get('/users/:userId/movies', async (req, res) => {
-  const { rating, watchStatus } = req.query
+  const { rating, watchStatus, movieId } = req.query
 
   //Puts rating-query and status-query into an object
   const buildRatingStatusQuery = (rating, watchStatus) => {
@@ -228,17 +228,17 @@ app.get('/users/:userId/movies', async (req, res) => {
     return findRatingStatus
   }
 
-  // if (!movieId) {
-  const lists = await RatedMovie.find({ userId: req.params.userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
-  if (lists.length > 0) {
-    res.json(lists)
-  } else {
-    res.status(404).json({ message: 'No movies rated yet' })
+  if (!movieId) {
+    const lists = await RatedMovie.find({ userId: req.params.userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
+    if (lists.length > 0) {
+      res.json(lists)
+    } else {
+      res.status(404).json({ message: 'No movies rated yet' })
+    }
+  } if (movieId) {
+    const ratedMovie = await RatedMovie.findOne({ userId: req.params.userId, movieId: movieId })
+    res.json(ratedMovie)
   }
-  // } else if (movieId) {
-  //   const ratedMovie = await RatedMovie.findOne({ userId: req.params.userId, movieId: movieId })
-  //   res.json(ratedMovie)
-  // }
 
 })
 
