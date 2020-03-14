@@ -228,12 +228,18 @@ app.get('/users/:userId/movies', async (req, res) => {
     return findRatingStatus
   }
 
+  // if (!movieId) {
   const lists = await RatedMovie.find({ userId: req.params.userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
   if (lists.length > 0) {
     res.json(lists)
   } else {
     res.status(404).json({ message: 'No movies rated yet' })
   }
+  // } else if (movieId) {
+  //   const ratedMovie = await RatedMovie.findOne({ userId: req.params.userId, movieId: movieId })
+  //   res.json(ratedMovie)
+  // }
+
 })
 
 //GET MOVIES THAT MATCH. http://localhost:8080/movies/5e6651a2564d8b0290c09380?friend=5e6642c587fd9a762bed45d1
