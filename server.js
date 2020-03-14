@@ -214,7 +214,7 @@ app.get('/users/:userId/otherUser', async (req, res) => {
 
 //Get user-specific lists with queries "watch" or "no", and "rating"
 app.get('/users/:userId/movies', async (req, res) => {
-  const { rating, watchStatus, movieId } = req.query
+  const { rating, watchStatus, movieId, page } = req.query
 
   //Puts rating-query and status-query into an object
   const buildRatingStatusQuery = (rating, watchStatus) => {
@@ -228,8 +228,17 @@ app.get('/users/:userId/movies', async (req, res) => {
     return findRatingStatus
   }
 
+  const skipResults = (page) => {
+    return ((page - 1) * 10)
+  }
+
   if (!movieId) {
-    const lists = await RatedMovie.find({ userId: req.params.userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
+    const lists = await RatedMovie.find({ userId: req.params.userId })
+      .find(buildRatingStatusQuery(rating, watchStatus))
+      .sort({ date: -1 })
+      .limit(10)
+      .skip(skipResults(page))
+
     if (lists.length > 0) {
       res.json(lists)
     } else {
