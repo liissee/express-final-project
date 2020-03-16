@@ -257,11 +257,11 @@ app.get('/movies/:userId', async (req, res) => {
   let friend = req.query.friend
 
   let myMovies = await RatedMovie.find({
-    watchStatus: "watch",
+    watchStatus: true,
     userId: myself
   })
   let friendsMovies = await RatedMovie.find({
-    watchStatus: "watch",
+    watchStatus: true,
     userId: friend
   })
   let matches = []
