@@ -56,7 +56,7 @@ const RatedMovie = mongoose.model("RatedMovie", {
     type: Number
   },
   watchStatus: {
-    type: String
+    type: Boolean
   },
   date: {
     type: Date,
