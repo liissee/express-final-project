@@ -56,7 +56,8 @@ const RatedMovie = mongoose.model("RatedMovie", {
     type: Number
   },
   watchStatus: {
-    type: Boolean
+    type: Boolean,
+    default: false
   },
   date: {
     type: Date,
@@ -266,7 +267,7 @@ app.get('/movies/:userId', async (req, res) => {
   })
   let matches = []
   myMovies.map((my, index) => {
-    if (friendsMovies.filter(friend => friend.movieTitle === my.movieTitle).length > 0) {
+    if (friendsMovies.filter(friend => (friend.movieTitle === my.movieTitle).length > 0)) {
       matches.push(my)
     } else {
       return
