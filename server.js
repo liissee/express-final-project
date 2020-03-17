@@ -267,7 +267,7 @@ app.get('/movies/:userId', async (req, res) => {
   })
   let matches = []
   myMovies.map((my, index) => {
-    if (friendsMovies.filter(friend => (friend.movieTitle === my.movieTitle).length > 0)) {
+    if (friendsMovies.filter(friend => friend.movieTitle === my.movieTitle).length > 0) {
       matches.push(my)
     } else {
       return
