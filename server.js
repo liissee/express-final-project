@@ -59,6 +59,10 @@ const RatedMovie = mongoose.model("RatedMovie", {
     type: Boolean,
     default: false
   },
+  comment: {
+    type: String, 
+    default: ""
+  },
   date: {
     type: Date,
     default: Date.now
@@ -135,7 +139,7 @@ app.get('/users/:userId', (req, res) => {
 app.put('/users/:userId', async (req, res) => {
   // const userId = req.params.userId
   try {
-    const { userId, movieId, movieTitle, rating, watchStatus } = req.body
+    const { userId, movieId, movieTitle, rating, watchStatus, comment } = req.body
     // const user = await User.findOne({ _id: userId })
 
     const savedMovie = await RatedMovie.findOne({ userId: req.body.userId, movieId: req.body.movieId })
@@ -147,7 +151,7 @@ app.put('/users/:userId', async (req, res) => {
       res.status(201).json(updated)
 
     } else {
-      const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, rating, watchStatus })
+      const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, rating, watchStatus, comment })
       const saved = await ratedMovie.save()
       await User.findOneAndUpdate(
         { _id: userId },
@@ -178,7 +182,7 @@ app.get('/users/:userId/allUsers', async (req, res) => {
   } catch (err) {
     res.status(400).json({ message: 'error', errors: err.errors })
   }
-
+})
 
   // if (name) {
   //   const person = await User.find({ name: req.query.name })
@@ -189,9 +193,6 @@ app.get('/users/:userId/allUsers', async (req, res) => {
   //   const otherUser = await User.find()
   //   res.json(otherUser)
   // }
-
-
-})
 
 
 //   const lists = await RatedMovie.find({ userId: req.params.userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
