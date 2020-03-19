@@ -150,7 +150,6 @@ app.put('/users/:userId', async (req, res) => {
     const savedMovie = await RatedMovie.findOne({ userId: req.body.userId, movieId: req.body.movieId })
     //if there is a savedmovie, update it. Else add it to database! 
     if (savedMovie) {
-      console.log(savedMovie)
       const updated = await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId }, req.body, { new: true })
       res.status(201).json(updated)
     } else {
@@ -205,6 +204,7 @@ app.get('/comments/:movieId', async (req, res) => {
   try {
     let movie = await RatedMovie.find({ movieId: req.params.movieId })
       .sort({ date: 'desc' })
+      .limit(20)
     let comments = []
     movie.map((commentedMovie) => (
       comments.push({ comment: commentedMovie.comment, userId: commentedMovie.userId, userName: commentedMovie.userName })
