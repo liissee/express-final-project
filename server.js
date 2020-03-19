@@ -59,8 +59,12 @@ const RatedMovie = mongoose.model("RatedMovie", {
     type: Boolean,
     default: false
   },
-  comment: {
-    type: String, 
+  comment: [{
+    type: String,
+    default: ""
+  }],
+  userName: {
+    type: String,
     default: ""
   },
   date: {
@@ -139,19 +143,18 @@ app.get('/users/:userId', (req, res) => {
 app.put('/users/:userId', async (req, res) => {
   // const userId = req.params.userId
   try {
-    const { userId, movieId, movieTitle, rating, watchStatus, comment } = req.body
+    const { userId, movieId, movieTitle, rating, watchStatus, comment, userName } = req.body
     // const user = await User.findOne({ _id: userId })
-
+    console.log(comment)
+    //if two users have rated the same movie, it will find one of them
     const savedMovie = await RatedMovie.findOne({ userId: req.body.userId, movieId: req.body.movieId })
-    //How to make it find something? If i write something weird here, it should go to "else"
-    // let saved = []
+    //if there is a savedmovie, update it. Else add it to database! 
     if (savedMovie) {
       console.log(savedMovie)
       const updated = await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId }, req.body, { new: true })
       res.status(201).json(updated)
-
     } else {
-      const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, rating, watchStatus, comment })
+      const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, rating, watchStatus, comment, userName })
       const saved = await ratedMovie.save()
       await User.findOneAndUpdate(
         { _id: userId },
@@ -164,6 +167,7 @@ app.put('/users/:userId', async (req, res) => {
     res.status(400).json({ message: 'Could not rate movie', errors: err.errors })
   }
 })
+
 
 // Get a list of all the users. KOLLA SÅ ATT VI INTE FÅR MED PASSWORD OCH ACCESSTOKEN
 app.get('/users/:userId/allUsers', async (req, res) => {
@@ -184,24 +188,6 @@ app.get('/users/:userId/allUsers', async (req, res) => {
   }
 })
 
-  // if (name) {
-  //   const person = await User.find({ name: req.query.name })
-  //   if (person.length > 0) {
-  //     res.json(person)
-  //   }
-  // } else {
-  //   const otherUser = await User.find()
-  //   res.json(otherUser)
-  // }
-
-
-//   const lists = await RatedMovie.find({ userId: req.params.userId }).find(buildRatingStatusQuery(rating, watchStatus)).sort({ date: -1 })
-//   if (lists.length > 0) {
-//     res.json(lists)
-//   } else {
-//     res.status(404).json({ message: 'No movies rated yet' })
-//   }
-
 // Get a list of one user
 app.get('/users/:userId/otherUser', async (req, res) => {
   try {
@@ -213,6 +199,22 @@ app.get('/users/:userId/otherUser', async (req, res) => {
     res.status(400).json({ message: 'error', errors: err.errors })
   }
 })
+
+//Get comments for one movie by movie id. 
+app.get('/comments/:movieId', async (req, res) => {
+  try {
+    let movie = await RatedMovie.find({ movieId: req.params.movieId })
+      .sort({ date: 'desc' })
+    let comments = []
+    movie.map((commentedMovie) => (
+      comments.push({ comment: commentedMovie.comment, userId: commentedMovie.userId, userName: commentedMovie.userName })
+    ))
+    res.json(comments)
+  } catch (err) {
+    res.status(400).json({ message: 'error', errors: err.errors })
+  }
+})
+
 
 //Get user-specific lists with queries "watch" or "no", and "rating"
 app.get('/users/:userId/movies', async (req, res) => {
