@@ -5,7 +5,7 @@ import mongoose from 'mongoose'
 import crypto from "crypto"
 import bcrypt from 'bcrypt-nodejs'
 
-//Setting up mongoDB database
+// Setting up MongoDB database
 const mongoUrl = process.env.MONGO_URL || "mongodb://localhost/authMovie"
 mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true })
 mongoose.Promise = Promise
@@ -60,8 +60,7 @@ const RatedMovie = mongoose.model("RatedMovie", {
     default: false
   },
   comment: [{
-    type: String,
-    default: ""
+    type: String
   }],
   userName: {
     type: String,
@@ -76,9 +75,7 @@ const RatedMovie = mongoose.model("RatedMovie", {
 
 
 // Defines the port the app will run on. Defaults to 8080, but can be 
-// overridden when starting the server. For example:
-//
-//   PORT=9000 npm start
+// overridden when starting the server. For example: PORT=9000 npm start
 const port = process.env.PORT || 8080
 const app = express()
 
@@ -89,13 +86,14 @@ app.use(bodyParser.json())
 const authenticateUser = async (req, res, next) => {
   const user = await User.findOne({ accessToken: req.header('Authorization') })
   if (user) {
-    req.user = user //what does this mean? 
-    next() //when to use next? (calling the next() function which allows the proteced endpoint to continue execution)
+    req.user = user 
+    next() // Calling the next() function which allows the proteced endpoint to continue execution
   } else {
     res.status(403).json({ message: "You need to login to access this page" })
   }
 }
-// Start defining your routes here
+
+
 app.get('/', (req, res) => {
   res.send('Hello backend for movie project')
 })
@@ -111,7 +109,8 @@ app.post('/users', async (req, res) => {
     res.status(400).json({ message: 'Could not create user', errors: err.errors })
   }
 })
-//LOGIN SESSION
+
+// Login session
 app.post('/sessions', async (req, res) => {
   const user = await User.findOne({ email: req.body.email })
   if (user && bcrypt.compareSync(req.body.password, user.password)) {
@@ -122,11 +121,10 @@ app.post('/sessions', async (req, res) => {
   }
 })
 
-
+// This will only be shown if the next()-function is called from the middleware
 app.get('/secrets', authenticateUser)
-//This will only be shown if the next()-function is called from the middleware
 app.get('/secrets', (req, res) => {
-  res.json({ secret: 'This is a super secret message' }) //what is the difference: res.json and res.send? 
+  res.json({ secret: 'This is a super secret message' })
 })
 
 
@@ -139,16 +137,14 @@ app.get('/users/:userId', (req, res) => {
   }
 })
 
-//Test posting rating to lists
+// Updating ratings for a logged-in user
 app.put('/users/:userId', async (req, res) => {
-  // const userId = req.params.userId
   try {
     const { userId, movieId, movieTitle, rating, watchStatus, comment, userName } = req.body
-    // const user = await User.findOne({ _id: userId })
     console.log(comment)
-    //if two users have rated the same movie, it will find one of them
+    // If two users have rated the same movie, it will find one of them
     const savedMovie = await RatedMovie.findOne({ userId: req.body.userId, movieId: req.body.movieId })
-    //if there is a savedmovie, update it. Else add it to database! 
+    // If there is a saved movie, update it. Else add it to database! 
     if (savedMovie) {
       const updated = await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId }, req.body, { new: true })
       res.status(201).json(updated)
@@ -161,18 +157,17 @@ app.put('/users/:userId', async (req, res) => {
       )
       res.status(201).json(saved)
     }
-
   } catch (err) {
     res.status(400).json({ message: 'Could not rate movie', errors: err.errors })
   }
 })
 
 
-// Get a list of all the users. KOLLA SÅ ATT VI INTE FÅR MED PASSWORD OCH ACCESSTOKEN
+// Get a list of all the users 
 app.get('/users/:userId/allUsers', async (req, res) => {
   const { name } = req.query
 
-  //Regular expression to make it case insensitive
+  // Regular expression to make it case insensitive
   const nameRegex = new RegExp(name, "i")
   let otherUser
   try {
@@ -187,19 +182,18 @@ app.get('/users/:userId/allUsers', async (req, res) => {
   }
 })
 
-// Get a list of one user
+// Get a list of another user's rated movies
 app.get('/users/:userId/otherUser', async (req, res) => {
   try {
     const name = await User.findOne({ _id: req.params.userId })
     const otherUser = await RatedMovie.find({ userId: req.params.userId })
-    // .populate('userId')
     res.status(201).json({ otherUser, name: name.name })
   } catch (err) {
     res.status(400).json({ message: 'error', errors: err.errors })
   }
 })
 
-//Get comments for one movie by movie id. 
+// Get comments for one movie by movie id
 app.get('/comments/:movieId', async (req, res) => {
   try {
     let movie = await RatedMovie.find({ movieId: req.params.movieId })
@@ -216,11 +210,11 @@ app.get('/comments/:movieId', async (req, res) => {
 })
 
 
-//Get user-specific lists with queries "watch" or "no", and "rating"
+// Get user-specific lists with queries "watch" and "rating"
 app.get('/users/:userId/movies', async (req, res) => {
   const { rating, watchStatus, movieId, page } = req.query
 
-  //Puts rating-query and status-query into an object
+  // Puts rating-query and watchstatus-query into an object
   const buildRatingStatusQuery = (rating, watchStatus) => {
     let findRatingStatus = {}
     if (rating) {
@@ -252,10 +246,9 @@ app.get('/users/:userId/movies', async (req, res) => {
     const ratedMovie = await RatedMovie.findOne({ userId: req.params.userId, movieId: movieId })
     res.json(ratedMovie)
   }
-
 })
 
-//GET MOVIES THAT MATCH. http://localhost:8080/movies/5e6651a2564d8b0290c09380?friend=5e6642c587fd9a762bed45d1
+// Get movies that match
 app.get('/movies/:userId', async (req, res) => {
   let myself = req.params.userId
   let friend = req.query.friend
