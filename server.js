@@ -59,9 +59,9 @@ const RatedMovie = mongoose.model("RatedMovie", {
     type: Boolean,
     default: false
   },
-  comment: {
+  comment: [{
     type: String
-  },
+  }],
   userName: {
     type: String,
     default: ""
@@ -192,25 +192,6 @@ app.get('/users/:userId/otherUser', async (req, res) => {
   }
 })
 
-// Get comments for one movie by movie id
-app.get('/comments/:movieId', async (req, res) => {
-  try {
-    let movie = await RatedMovie.find({ movieId: req.params.movieId })
-      .sort({ date: 'desc' })
-      .limit(20)
-    let comments = []
-    movie.map((commentedMovie) => (
-      commentedMovie.comment && (
-        comments.push({ comment: commentedMovie.comment, userId: commentedMovie.userId, userName: commentedMovie.userName })
-      )
-    ))
-    res.json(comments)
-  } catch (err) {
-    res.status(400).json({ message: 'error', errors: err.errors })
-  }
-})
-
-
 // Get user-specific lists with queries "watch" and "rating"
 app.get('/users/:userId/movies', async (req, res) => {
   const { rating, watchStatus, movieId, page } = req.query
@@ -273,6 +254,25 @@ app.get('/movies/:userId', async (req, res) => {
   res.status(201).json(matches)
 })
 
+
+// Get comments for one movie by movie id
+app.get('/comments/:movieId', async (req, res) => {
+  try {
+    let movie = await RatedMovie.find({ movieId: req.params.movieId })
+      .sort({ date: 'desc' })
+      .limit(20)
+    let comments = []
+    movie.map((commentedMovie) => (
+      commentedMovie.comment[0] && (
+        comments.push({ comment: commentedMovie.comment, userId: commentedMovie.userId, userName: commentedMovie.userName })
+      )
+    ))
+    res.json(comments)
+  } catch (err) {
+    res.status(400).json({ message: 'error', errors: err.errors })
+  }
+})
+
 app.delete("/comments/:movieId", async (req, res) => {
   const userId = req.body.userId
   const movieId = req.params.movieId
@@ -294,6 +294,40 @@ app.delete("/comments/:movieId", async (req, res) => {
   }
 }
 )
+
+app.put('/comments/:movieId', async (req, res) => {
+  try {
+    // const { movieId } = req.params
+    const { userId, comment, userName, movieId } = req.body
+    console.log("movieId: ", movieId)
+    console.log("userId: ", userId)
+    console.log("comment: ", comment)
+    console.log("userName: ", userName)
+
+    const savedMovie = await RatedMovie.findOne({ userId: req.body.userId, movieId: req.body.movieId })
+    // If there is a saved movie, update it. Else add it to database! 
+    console.log("savedMovie: ", savedMovie)
+
+    if (savedMovie) {
+      await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId },
+        { _id: movieId },
+        { $push: { comment } },
+        { new: true }
+      )
+      // res.status(201).json(updated)
+    } else {
+      const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, rating, watchStatus, comment, userName })
+      const saved = await ratedMovie.save()
+      await User.findOneAndUpdate(
+        { _id: userId },
+        { $push: { movies: saved } }
+      )
+      res.status(201).json(saved)
+    }
+  } catch (err) {
+    res.status(400).json({ message: 'Could not rate movie', errors: err.errors })
+  }
+})
 
 // Start the server
 app.listen(port, () => {
