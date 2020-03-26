@@ -258,15 +258,27 @@ app.get('/movies/:userId', async (req, res) => {
 // Get comments for one movie by movie id
 app.get('/comments/:movieId', async (req, res) => {
   try {
+    console.log("innan await")
     let movie = await RatedMovie.find({ movieId: req.params.movieId })
     let comments = []
+    console.log("hej")
+    console.log(movie)
     movie.map((commentedMovie) => (
-      commentedMovie.comment[0] && (
-        comments.push({ comment: commentedMovie.comment, userId: commentedMovie.userId, userName: commentedMovie.userName, createdAt: Date.now() })
-      )
+      commentedMovie.comment.map((comment) => {
+        console.log("comment in map: ", comment)
+        comments.push(comment)
+      })
+      // , userId: comment.userId, userName: comment.userName, createdAt: Date.now 
+      // commentedMovie.comment[0] && (
+      //   comments.push({ comment: commentedMovie.comment, userId: commentedMovie.userId, userName: commentedMovie.userName, createdAt: Date.now })
+      // )
     ))
-    const sortedComments = comments.sort({ createdAt: "desc" })
-    res.json(sortedComments)
+    console.log("eftermap")
+    console.log("comments: ", comments)
+    // const sortedComments = comments.sort({ createdAt: "desc" })
+
+    // console.log(sortedComments)
+    res.json(comments)
   } catch (err) {
     res.status(400).json({ message: 'error', errors: err.errors })
   }
