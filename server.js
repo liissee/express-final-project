@@ -165,7 +165,7 @@ app.put('/users/:userId', async (req, res) => {
 // Get a list of all the users 
 app.get('/users/:userId/allUsers', async (req, res) => {
   const { name } = req.query
-
+  console.log("search user")
   // Regular expression to make it case insensitive
   const nameRegex = new RegExp(name, "i")
   let otherUser
@@ -310,14 +310,13 @@ app.put('/comments/:movieId', async (req, res) => {
 
     if (savedMovie) {
       await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId },
-        { _id: movieId },
         { $push: { comment } },
         { new: true }
       )
-      // res.status(201).json(updated)
+      res.status(201).json(updated)
     } else {
-      const ratedMovie = new RatedMovie({ userId, movieId, movieTitle, rating, watchStatus, comment, userName })
-      const saved = await ratedMovie.save()
+      const commentedMovie = new RatedMovie({ userId, movieId, comment, userName })
+      const saved = await commentedMovie.save()
       await User.findOneAndUpdate(
         { _id: userId },
         { $push: { movies: saved } }
