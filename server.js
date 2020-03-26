@@ -59,9 +59,9 @@ const RatedMovie = mongoose.model("RatedMovie", {
     type: Boolean,
     default: false
   },
-  comment: [{
+  comment: {
     type: String
-  }],
+  },
   userName: {
     type: String,
     default: ""
@@ -86,7 +86,7 @@ app.use(bodyParser.json())
 const authenticateUser = async (req, res, next) => {
   const user = await User.findOne({ accessToken: req.header('Authorization') })
   if (user) {
-    req.user = user 
+    req.user = user
     next() // Calling the next() function which allows the proteced endpoint to continue execution
   } else {
     res.status(403).json({ message: "You need to login to access this page" })
@@ -141,7 +141,6 @@ app.get('/users/:userId', (req, res) => {
 app.put('/users/:userId', async (req, res) => {
   try {
     const { userId, movieId, movieTitle, rating, watchStatus, comment, userName } = req.body
-    console.log(comment)
     // If two users have rated the same movie, it will find one of them
     const savedMovie = await RatedMovie.findOne({ userId: req.body.userId, movieId: req.body.movieId })
     // If there is a saved movie, update it. Else add it to database! 
@@ -201,7 +200,9 @@ app.get('/comments/:movieId', async (req, res) => {
       .limit(20)
     let comments = []
     movie.map((commentedMovie) => (
-      comments.push({ comment: commentedMovie.comment, userId: commentedMovie.userId, userName: commentedMovie.userName })
+      commentedMovie.comment && (
+        comments.push({ comment: commentedMovie.comment, userId: commentedMovie.userId, userName: commentedMovie.userName })
+      )
     ))
     res.json(comments)
   } catch (err) {
@@ -272,6 +273,27 @@ app.get('/movies/:userId', async (req, res) => {
   res.status(201).json(matches)
 })
 
+app.delete("/comments/:movieId", async (req, res) => {
+  const userId = req.body.userId
+  const movieId = req.params.movieId
+  const comment = req.body.comment
+  try {
+    //Find a comment for the right movie and the logged in user
+    const deletedComment = await RatedMovie.findOneAndUpdate(
+      { movieId, userId },
+      { $unset: { comment, userId } }
+    )
+    if (deletedComment !== null) {
+      res.status(200).json({ message: `Successfully deleted comment` })
+    } else {
+      res.status(400).json({ errorMessage: "Couldn't delete comment" })
+    }
+  } catch (err) {
+    res.status(400).json({ errorMessage: "Couldn't delete comment", error: err.errors })
+    console.log(err)
+  }
+}
+)
 
 // Start the server
 app.listen(port, () => {
