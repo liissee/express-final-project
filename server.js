@@ -259,15 +259,14 @@ app.get('/movies/:userId', async (req, res) => {
 app.get('/comments/:movieId', async (req, res) => {
   try {
     let movie = await RatedMovie.find({ movieId: req.params.movieId })
-      .sort({ date: 'desc' })
-      .limit(20)
     let comments = []
     movie.map((commentedMovie) => (
       commentedMovie.comment[0] && (
-        comments.push({ comment: commentedMovie.comment, userId: commentedMovie.userId, userName: commentedMovie.userName })
+        comments.push({ comment: commentedMovie.comment, userId: commentedMovie.userId, userName: commentedMovie.userName, createdAt: Date.now() })
       )
     ))
-    res.json(comments)
+    const sortedComments = comments.sort({ createdAt: "desc" })
+    res.json(sortedComments)
   } catch (err) {
     res.status(400).json({ message: 'error', errors: err.errors })
   }
@@ -308,15 +307,15 @@ app.put('/comments/:movieId', async (req, res) => {
     // If there is a saved movie, update it. Else add it to database! 
     console.log("savedMovie: ", savedMovie)
 
-    if (savedMovie) {
-      await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId },
+    if (savedMovie !== null) {
+      const updated = await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId },
         { $push: { comment } },
         { new: true }
       )
       res.status(201).json(updated)
     } else {
-      const commentedMovie = new RatedMovie({ userId, movieId, comment, userName })
-      const saved = await commentedMovie.save()
+      const savedMovie = new RatedMovie({ userId, movieId, comment, userName })
+      const saved = await savedMovie.save()
       await User.findOneAndUpdate(
         { _id: userId },
         { $push: { movies: saved } }
