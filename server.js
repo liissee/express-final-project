@@ -59,9 +59,17 @@ const RatedMovie = mongoose.model("RatedMovie", {
     type: Boolean,
     default: false
   },
-  comment: [{
-    type: String
+  comments: [{
+    comment: String,
+    userName: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
   }],
+  // comment: [{
+  //   type: String
+  // }],
   userName: {
     type: String,
     default: ""
@@ -258,27 +266,14 @@ app.get('/movies/:userId', async (req, res) => {
 // Get comments for one movie by movie id
 app.get('/comments/:movieId', async (req, res) => {
   try {
-    console.log("innan await")
     let movie = await RatedMovie.find({ movieId: req.params.movieId })
     let comments = []
-    console.log("hej")
-    console.log(movie)
     movie.map((commentedMovie) => (
-      commentedMovie.comment.map((comment) => {
-        console.log("comment in map: ", comment)
-        comments.push(comment)
-      })
-      // , userId: comment.userId, userName: comment.userName, createdAt: Date.now 
-      // commentedMovie.comment[0] && (
-      //   comments.push({ comment: commentedMovie.comment, userId: commentedMovie.userId, userName: commentedMovie.userName, createdAt: Date.now })
-      // )
+      comments.push(commentedMovie.comments)
     ))
-    console.log("eftermap")
-    console.log("comments: ", comments)
-    // const sortedComments = comments.sort({ createdAt: "desc" })
-
-    // console.log(sortedComments)
-    res.json(comments)
+    let allComments = [].concat.apply([], comments)
+    const sortedComments = allComments.sort((a, b) => b.createdAt - a.createdAt)
+    res.json(sortedComments)
   } catch (err) {
     res.status(400).json({ message: 'error', errors: err.errors })
   }
@@ -308,20 +303,12 @@ app.delete("/comments/:movieId", async (req, res) => {
 
 app.put('/comments/:movieId', async (req, res) => {
   try {
-    // const { movieId } = req.params
     const { userId, comment, userName, movieId } = req.body
-    console.log("movieId: ", movieId)
-    console.log("userId: ", userId)
-    console.log("comment: ", comment)
-    console.log("userName: ", userName)
-
     const savedMovie = await RatedMovie.findOne({ userId: req.body.userId, movieId: req.body.movieId })
-    // If there is a saved movie, update it. Else add it to database! 
-    console.log("savedMovie: ", savedMovie)
 
     if (savedMovie !== null) {
       const updated = await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId },
-        { $push: { comment } },
+        { $push: { comments: { comment, userName } } },
         { new: true }
       )
       res.status(201).json(updated)
