@@ -280,14 +280,17 @@ app.get('/comments/:movieId', async (req, res) => {
 })
 
 app.delete("/comments/:movieId", async (req, res) => {
-  const userId = req.body.userId
+  // const userId = req.body.userId
   const movieId = req.params.movieId
-  const comment = req.body.comment
+  // const createdAt = req.body.createdAt
+  const { userId, createdAt } = req.body
+
   try {
     //Find a comment for the right movie and the logged in user
     const deletedComment = await RatedMovie.findOneAndUpdate(
       { movieId, userId },
-      { $unset: { comment, userId } }
+      // { $unset: { comment, userId } }
+      { $pull: { comments: { createdAt } } }
     )
     if (deletedComment !== null) {
       res.status(200).json({ message: `Successfully deleted comment` })
@@ -298,6 +301,7 @@ app.delete("/comments/:movieId", async (req, res) => {
     res.status(400).json({ errorMessage: "Couldn't delete comment", error: err.errors })
     console.log(err)
   }
+  console.log("Deleted comment: ", deletedComment)
 }
 )
 
