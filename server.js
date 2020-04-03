@@ -310,21 +310,24 @@ app.put('/comments/:movieId', async (req, res) => {
     const { userId, comment, userName, movieId } = req.body
     const savedMovie = await RatedMovie.findOne({ userId: req.body.userId, movieId: req.body.movieId })
 
-    if (savedMovie !== null) {
-      const updated = await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId },
-        { $push: { comments: { comment, userName } } },
-        { new: true }
-      )
-      res.status(201).json(updated)
-    } else {
+    if (savedMovie === null) {
       const savedMovie = new RatedMovie({ userId, movieId, comment, userName })
       const saved = await savedMovie.save()
       await User.findOneAndUpdate(
         { _id: userId },
         { $push: { movies: saved } }
       )
-      res.status(201).json(saved)
+      console.log("first if", savedMovie)
+      // res.status(201).json(saved)
     }
+    const updated = await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId },
+      { $push: { comments: { comment, userName } } },
+      { new: true }
+    )
+    console.log("second if", updated)
+
+    res.status(201).json(updated)
+
   } catch (err) {
     res.status(400).json({ message: 'Could not rate movie', errors: err.errors })
   }
