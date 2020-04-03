@@ -317,17 +317,12 @@ app.put('/comments/:movieId', async (req, res) => {
         { _id: userId },
         { $push: { movies: saved } }
       )
-      console.log("first if", savedMovie)
-      // res.status(201).json(saved)
     }
     const updated = await RatedMovie.findOneAndUpdate({ userId: req.body.userId, movieId: req.body.movieId },
       { $push: { comments: { comment, userName } } },
       { new: true }
     )
-    console.log("second if", updated)
-
     res.status(201).json(updated)
-
   } catch (err) {
     res.status(400).json({ message: 'Could not rate movie', errors: err.errors })
   }
